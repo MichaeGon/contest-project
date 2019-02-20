@@ -8,21 +8,21 @@ import System.Process (callProcess)
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
 
-data OptionData = OptionData {
-    optNumber :: Int,
-    optStart :: String
-} deriving (Show, Eq)
+data EmptyOption = EmptyOption
+    deriving (Show)
 
-instance Options OptionData where
-    defineOptions = OptionData
-        <$> simpleOption "number" 4 "Number of questions"
-        <*> simpleOption "start" "a" "Name of the first question"
+instance Options EmptyOption where
+    defineOptions = pure EmptyOption
 
 main :: IO ()
-main = runCommand createProject
+main = runSubcommand
+    [ subcommand "new" createProject
+    , subcommand "save" saveMain
+    , subcommand "load" loadMain
+    ]
 
-createProject :: OptionData -> [String] -> IO ()
-createProject opt (dist : _) = bracketOnError createTemplate removeTemplate initializeStack
+createProject :: EmptyOption -> EmptyOption -> [String] -> IO ()
+createProject _ _ [dist] = bracketOnError createTemplate removeTemplate initializeStack
     where
         createTemplate = openTempFile "." "contest.hsfiles"
 
@@ -34,13 +34,30 @@ createProject opt (dist : _) = bracketOnError createTemplate removeTemplate init
                                 >> callProcess "stack" ["new", dist, file]
                                 >> removeFile file
 
-        contents = makeHsfiles opt 
+        contents = T.unlines $ header : srcContents
 
-createProject _ _ = error "no project name applied"
+createProject _ _ _ = error "a project name must be applied, USAGE: contest-project init <project name>"
 
-makeHsfiles :: OptionData -> T.Text
-makeHsfiles OptionData {optNumber = n, optStart = (c : _)} = T.unlines $ header : mainis c : srcs n c
-makeHsfiles _ = error "Empty question name"
+saveMain :: EmptyOption -> EmptyOption -> [String] -> IO ()
+saveMain _ _ [dist]
+    | dist /= "Main" = readFile "src/Main.hs" >>= writeFile path
+    | otherwise = saveMain EmptyOption EmptyOption []
+    where
+        path = concat ["src/", dist, ".hs"]
+saveMain _ _ _ = error "a filename must be applied (not Main), USAGE: contest-project save <filename>"
+
+loadMain :: EmptyOption -> EmptyOption -> [String] -> IO ()
+loadMain _ _ [dist]
+    | dist /= "Main" = doesFileExist path >>= editFiles 
+    | otherwise = loadMain EmptyOption EmptyOption []
+    where 
+        editFiles res 
+            | res = readFile path >>= writeFile "src/Main.hs"
+            | otherwise = T.writeFile path defaultContents >> T.writeFile "src/Main.hs" defaultContents
+        path = concat ["src/", dist, ".hs"]
+        defaultContents = T.unlines srcContents
+
+loadMain _ _ _ = error "a filename must be applied (not Main), USAGE: contest-project load <filename>"
 
 header :: T.Text
 header = T.unlines 
@@ -73,21 +90,10 @@ header = T.unlines
     , "  hs-source-dirs:      src"
     , "  default-language:    Haskell2010"
     , "  build-depends:       base >= 4.7 && < 5"
-    --, "  main-is: a.hs"
-    --, ""
-    ]
-
-mainis :: Char -> T.Text
-mainis c = T.unlines
-    [ T.concat ["  main-is: ", T.pack [c], ".hs"]
+    , "  main-is: Main.hs"
     , ""
+    , "{-# START_FILE src/Main.hs #-}"
     ]
-
-srcs :: Int -> Char -> [T.Text]
-srcs n c = map mf $ take n [c..]
-    where
-        mf x = T.unlines $ srcHeader x : srcContents
-        srcHeader x = T.concat ["{-# START_FILE src/", T.pack [x], ".hs #-}"]
 
 srcContents :: [T.Text]
 srcContents =
