@@ -89,7 +89,7 @@ header = T.unlines
     , "executable {{name}}"
     , "  hs-source-dirs:      src"
     , "  default-language:    Haskell2010"
-    , "  build-depends:       base >= 4.7 && < 5"
+    , "  build-depends:       base >= 4.7 && < 5, bytestring"
     , "  main-is: Main.hs"
     , ""
     , "{-# START_FILE src/Main.hs #-}"
