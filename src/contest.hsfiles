@@ -1,0 +1,48 @@
+{-# START_FILE {{name}}.cabal #-}
+name:                {{name}}
+version:             0.1.0.0
+-- synopsis:
+-- description:
+homepage:            https://github.com/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}#readme
+license:             BSD3
+license-file:        LICENSE
+author:              {{author-name}}{{^author-name}}Author name here{{/author-name}}
+maintainer:          {{author-email}}{{^author-email}}example@example.com{{/author-email}}
+copyright:           {{copyright}}{{^copyright}}{{year}}{{^year}}2019{{/year}} {{author-name}}{{^author-name}}Author name here{{/author-name}}{{/copyright}}
+category:            {{category}}{{^category}}Web{{/category}}
+build-type:          Simple
+cabal-version:       >=1.10
+extra-source-files:  README.md
+
+executable {{name}}
+  hs-source-dirs:      src
+  default-language:    Haskell2010
+  build-depends:       base >= 4.7 && < 5, bytestring, mtl, containers
+  main-is:             Main.hs
+
+{-# START_FILE Setup.hs #-}
+import Distribution.Simple
+main = defaultMain
+
+{-# START_FILE README.md #-}
+# {{name}}
+
+Template for Programming Contest in Haskell 
+
+{-# START_FILE src/Main.hs #-}
+import Control.Arrow
+import Control.Monad
+import Data.List
+import qualified Data.ByteString.Char8 as B
+
+main :: IO ()
+main = undefined 
+
+solve :: Int
+solve = undefined
+
+readLine :: IO [Int]
+readLine = unfoldr (fmap (second (maybe B.empty snd . B.uncons)) . B.readInt) <$> B.getLine
+
+readContents :: Int -> IO [[Int]]
+readContents = flip replicateM readLine
